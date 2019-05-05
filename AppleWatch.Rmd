@@ -17,7 +17,6 @@ library(XML)
 library(lubridate)
 
 #Load the xml file into memory 
-#!!!!!!!!!!!!! change name to xml_doc later
 xml_list <- xmlParse("/Users/vishnu/Documents/rStuff/apple_health_export/export.xml")
 
 ##
@@ -36,8 +35,6 @@ wo %>%
 
 
 ```
-
-
 
 ### Workouts per year
 
