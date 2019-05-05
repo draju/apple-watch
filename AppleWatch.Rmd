@@ -1,0 +1,115 @@
+---
+title: "Apple Watch Analysis"
+author: "Vishnu"
+date: "5/4/2019"
+output: html_document
+---
+
+```{r include=FALSE}
+#knitr::opts_chunk$set(include=FALSE)
+
+##
+# This script loads apple health data in the form of an XML file and 
+# generates summary statistics and visualizations
+##
+library(tidyverse)
+library(XML)
+library(lubridate)
+
+#Load the xml file into memory 
+#!!!!!!!!!!!!! change name to xml_doc later
+xml_list <- xmlParse("/Users/vishnu/Documents/rStuff/apple_health_export/export.xml")
+
+##
+# Number and type of workouts
+#
+wo <- XML:::xmlAttrsToDataFrame(xml_list["//Workout"])
+wo$endDate <- ymd_hms(wo$endDate, tz="America/New_York")
+wo$year<-format(wo$endDate,"%Y")
+
+# Number of workouts by type
+wo %>% 
+  group_by(workoutActivityType) %>%
+  summarize(count=n()) %>%
+  ggplot(aes(workoutActivityType,count)) + geom_bar(stat="identity")
+
+
+
+```
+
+
+
+### Workouts per year
+
+```{r echo=FALSE}
+wo %>% 
+  group_by(year) %>%
+  summarize(count=n())
+
+wo %>% 
+  group_by(year) %>%
+  summarize(count=n()) %>%
+  ggplot(aes(year,count)) + geom_bar(stat="identity")
+
+```
+
+### Daily Steps by year
+```{r include=FALSE}
+
+#Get step data frame
+sdf <- XML:::xmlAttrsToDataFrame(xml_list["//Record[@type='HKQuantityTypeIdentifierStepCount']"])
+
+##add in year month date dayofweek hour columns
+sdf$endDate <- ymd_hms(sdf$endDate, tz="America/New_York")
+sdf$value <- as.numeric(as.character(sdf$value))
+sdf$month<-format(sdf$endDate,"%m")
+sdf$year<-format(sdf$endDate,"%Y")
+sdf$date<-format(sdf$endDate,"%Y-%m-%d")
+sdf$dayofweek <-wday(sdf$endDate, label=TRUE, abbr=FALSE)
+sdf$hour <-format(sdf$endDate,"%H")
+
+#Get steps per day
+day_step <- sdf %>%
+  filter(str_detect(sourceName, "Watch")) %>%
+  filter(year %in% c('2015','2016','2017','2018')) %>%
+  group_by(date) %>%
+  summarize(steps=sum(value))
+day_step$yr <- substr(day_step$date,0,4)
+
+```
+
+```{r, echo=FALSE}
+
+# Steps per day by year
+day_step %>%
+  group_by(yr) %>%
+  summarize(mean_steps = mean(steps)) 
+
+day_step %>%
+  group_by(yr) %>%
+  summarize(mean_steps = mean(steps)) %>%
+  ggplot(aes(yr,mean_steps)) + geom_bar(stat="identity")
+
+```
+
+
+### Daily Steps by Month 2019
+
+```{r echo=FALSE }
+month_step <- sdf %>%
+  filter(str_detect(sourceName, "Watch")) %>%
+  filter(year %in% c('2019')) %>%
+  group_by(date) %>%
+  summarize(steps=sum(value))
+month_step$month <- substr(month_step$date,6,7)
+
+# Steps per day by year
+month_step %>%
+  group_by(month) %>%
+  summarize(mean_steps = mean(steps)) 
+
+month_step %>%
+  group_by(month) %>%
+  summarize(mean_steps = mean(steps)) %>%
+  ggplot(aes(month,mean_steps)) + geom_bar(stat="identity")
+```
